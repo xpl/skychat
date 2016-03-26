@@ -150,7 +150,7 @@
 
         .chat .input input { background: none; border: none; color: rgb(18, 17, 58); cursor: text;
                              padding: 10px 0; font-size: 20px;
-                             width: 400px; max-width: 100%; height: 50px;
+                             width: 500px; max-width: 100%; height: 50px;
                              box-sizing: border-box; }
 
 
@@ -179,7 +179,12 @@
 
         /*  Help button
          */
-        .chat-help span { padding: 20px; opacity: 0.5; }
+        .chat-help                  { position: relative; }
+        .chat-help span             { padding: 20px; opacity: 0.5; }
+        .chat-help.active span      { opacity: 1; }
+        .chat-help:before           { left: -20px; line-height: 12px; white-space: pre; font-size: 12px; display: inline-block; content: 'Available commands:\A\A/nick new_nick\A/me something';
+                                      position: absolute; bottom: 0; opacity: 0; transition: all 0.25s ease-in-out; }
+        .chat-help.active:before    { opacity: 1; bottom: 50px; }
 
         /*  Audio toggle
          */
@@ -334,7 +339,7 @@
 
     <script>
 
-        /*  Skylink voice API works only if HTTPS enabled
+        /*  Skylink voice API works only if HTTPS enabled. So redirect users to HTTP version of GitHub pages.
          */
         if ((('xpl.github.io'  === window.location.host) ||
              ('xpl.github.com' === window.location.host)) && (window.location.protocol != "https:")) {
@@ -478,11 +483,11 @@
 
             $defaults: {
                 peerNames: {},
-                userData: { name: window.localStorage.getItem ('^__^_username_^__^') || ('anonymous_' + Format.randomHexString (4)) } },
+                userData: { name: localStorage.getItem ('^__^_username_^__^') || ('anonymous_' + Format.randomHexString (4)) } },
 
             name: $property ({
                         get: function ()     { return this.userData.name },
-                        set: function (name) { window.localStorage.setItem ('^__^_username_^__^', name)
+                        set: function (name) { localStorage.setItem ('^__^_username_^__^', name)
                                                this.setUserData ({ name: name }) } }),
 
             peerName: function (id, info) {
@@ -750,8 +755,8 @@
                 $('<a href="javascript:{}" class="btn chat-help">')
                     .append ('<span>?</span>')
                     .appendTo (this.chatEl.find ('.buttons'))
-                    .touchClick (this.$ (function (e) {
-                        alert ('\nAvailable commands:\n\n/nick new_nick\n/me something\n\n') })) } })
+                    .touchClick (function (e) { $(e.delegateTarget).toggleClass ('active') }) } })
+
 
         /*  Fancy brush size widget. Also allows binding to 'flipped' action (we manage color picking via that action – defined in other trait)
          */
