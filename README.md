@@ -5,7 +5,7 @@ Probably wont work if has too many peers (> 100), because the history synchroniz
 
 Does not work in Safari (due to lack of WebRTC support). Actually, it can work, if your disable the `hasNativeRTCSupport ()` check in JS code, but it will ask users to install a third-party plugin (developed by Skylink), and it can be quite disturbing.
 
-P.S. In the corner, there's fancy springy brush size adjust. Flip it inside out to chnge color randomly.
+P.S. In the corner, there's fancy brush size adjust. Flip it inside out to change color randomly.
 
 ## Live demo: [xpl.github.com/skychat](https://xpl.github.com/skychat)
 
