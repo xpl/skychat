@@ -1,0 +1,991 @@
+<!DOCTYPE HTML PUBLIC "-//W3C//DTD HTML 4.01//EN"
+    "http://www.w3.org/TR/html4/strict.dtd">
+
+<html>
+<head>
+    <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
+    <title>Skychat</title>
+
+    <!-- jQuery, underscore -->
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-alpha1/jquery.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
+
+    <!-- Useless Framework, for OOP system and $traits (http://github.com/xpl/useless) -->
+    <script src="https://rawgit.com/xpl/useless/master/build/useless.micro.js"></script>
+
+    <!-- Uncomment this to enable Panic.js error reports (useful for debugging purposes) -->
+    <script src="https://rawgit.com/xpl/useless/master/build/useless.devtools.js"></script>
+
+    <style type="text/css">
+
+        @font-face {
+            font-family: 'PT Sans Caption';
+            src: local('PT Sans Caption');
+            src: url('fonts/PT-Sans-Caption.eot');
+            src: url('fonts/PT-Sans-Caption.eot?#iefix') format('embedded-opentype'),
+                 url('fonts/PT-Sans-Caption.woff') format('woff'),
+                 url('fonts/PT-Sans-Caption.ttf') format('truetype'),
+                 url('fonts/PT-Sans-Caption.svg#pt_sans_captionregular') format('svg');
+            font-weight: 400;
+            font-style: normal;
+        }
+
+        @font-face {
+            font-family: 'PT Sans Caption';
+            src: local('PT Sans Caption');
+            src: url('fonts/PT-Sans-Caption-Bold.eot');
+            src: url('fonts/PT-Sans-Caption-Bold.eot?#iefix') format('embedded-opentype'),
+                 url('fonts/PT-Sans-Caption-Bold.woff') format('woff'),
+                 url('fonts/PT-Sans-Caption-Bold.ttf') format('truetype'),
+                 url('fonts/PT-Sans-Caption-Bold.svg#pt_sans_captionregular') format('svg');
+            font-weight: 700;
+            font-style: normal;
+        }
+
+        /*  Body
+         */
+
+        html, body {
+            margin:0;
+            padding:0;
+            width:100%;
+            height:100%;
+            overflow: hidden;
+            position: relative; 
+            color: rgb(18, 17, 58); 
+        }
+
+        body, input {
+            font-family: 'PT Sans Caption', Helvetica, Arial, sans-serif;
+        }
+
+        /*  .appear animation
+         */
+
+        @-webkit-keyframes appear {
+            0%    { -webkit-transform: scale(0.9); opacity: 0; }
+            100%  { -webkit-transform: scale(1);   opacity: 1; } }
+
+                @keyframes appear {
+                    0%    { transform: scale(0.9); opacity: 0; }
+                    100%  { transform: scale(1);   opacity: 1; } }
+
+        .appear { /*pointer-events: none;*/
+                  -webkit-animation: appear 1s ease-out;
+                          animation: appear 1s ease-out;  }
+
+        .disappear { /*pointer-events: none;*/
+                     -webkit-animation: appear 1s ease-in;
+                             animation: appear 1s ease-in;
+                     -webkit-animation-direction: reverse;
+                             animation-direction: reverse; }
+
+
+        /*  Loading
+         */
+
+        @-webkit-keyframes rotate-360 {
+            0%   { -webkit-transform: rotate(0deg); }
+            100% { -webkit-transform: rotate(360deg); } }
+
+        @keyframes rotate-360 {
+            0%   { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); } }
+
+        .loading { position: absolute; left: 50%; top: 50%; width: 0; height: 0; }
+
+        .loading > svg { width: 100px; height: 100px; margin-left: -50px; margin-top: -50px; opacity: 0.1;
+
+                    animation: rotate-360 0.5s ease-in-out infinite;
+            -webkit-animation: rotate-360 0.5s ease-in-out infinite;  }
+
+        /*  Inputs & not inputs
+         */
+
+        input  { outline: none; }
+  *:not(input) {
+
+            -webkit-animation-fill-mode: forwards;
+                    animation-fill-mode: forwards;
+
+            cursor: default;
+
+            -webkit-user-select: none;
+               -moz-user-select: none;
+                    user-select: none; }
+
+        ::-webkit-input-placeholder { color: rgb(18, 17, 58); opacity: 0.25; } /* NOTE: somehow doesn't work if unified with comma */
+                 ::-moz-placeholder { color: rgb(18, 17, 58); opacity: 0.25; }
+             :-ms-input-placeholder { color: rgb(18, 17, 58); opacity: 0.25; }
+             input:-moz-placeholder { color: rgb(18, 17, 58); opacity: 0.25; }
+
+        /*  Clickable stuff
+         */
+
+        a   { cursor: pointer; color: rgb(18, 17, 58); text-decoration: none; }
+        a * { pointer-events: none; }
+
+        .btn { transition: all 0.1s ease-in-out; -webkit-transform: scale(1);
+                                                         transform: scale(1); }
+                         
+                         .btn.pressed,
+        html:not(.touch) .btn:hover { opacity: 1 !important; -webkit-transform: scale(1.1);
+                                                                     transform: scale(1.1); }
+
+        .btn.wait { pointer-events: none; }
+
+        /*  Chat
+         */
+
+        .chat              { position: absolute; right: 0; left: 0; top: 0; bottom: 0;
+                             padding-left: 87px; padding-bottom: 55px; transition: padding-left 1s ease-in-out;
+                             font-size: 20px; }
+
+        .chat .input        { position: absolute; right: 0; bottom: 0; left: 0; padding-left: inherit; padding-bottom: inherit; }
+        .chat .input:before { padding-left: inherit; content: '>'; position: absolute; line-height: 50px; top: 0; bottom: 0; left: -20px; opacity: 0.4; }
+        
+        .chat .input .buttons        { right: 70px;  position: absolute; display: inline-block; }
+        .chat .input .buttons .btn   { position: relative; z-index: 10; margin-left: 20px; opacity: 0.4; display: inline-block; height: 50px; box-sizing: border-box; line-height: 50px; }
+        .chat .input .buttons .btn i { position: relative; top: 2px; left: -1px; }
+
+        .chat .input input { background: none; border: none; color: rgb(18, 17, 58); cursor: text;
+                             padding: 10px 0; font-size: 20px;
+                             width: 400px; max-width: 100%; height: 50px;
+                             box-sizing: border-box; }
+
+
+        /*  Chat messages
+         */
+
+        .chat .messages { pointer-events: none; width: 100%; position: absolute; bottom: 140px; z-index: 2000; }
+
+        .chat .entry               { min-height: 1em; }
+        
+        .chat .entry.message       { opacity: 0.75; margin-bottom: 2px; }
+        .chat .entry.message     * { text-shadow: 0px 0px 10px rgba(82, 51, 132, /*0.25*/ 0.15); }
+        
+        .chat .entry.nick-change *,
+        .chat .entry.me          * { color: #D7B35D; }
+
+        .chat .entry         .who { white-space: nowrap; }
+        .chat .entry.message .who { opacity: 0.35; position: absolute; right: 100%; margin-right: 5px;}
+
+        .chat .entry         .who:after { content: ' ' ; }
+        .chat .entry.message .who:after { content: ': '; }
+
+        .chat .entry         .what { background: white; }
+        .chat .entry.message .what { color: rgba(0,0,0,0.75); }
+
+
+        /*  Audio toggle
+         */
+
+        .enable-audio               { opacity: 0.5; }
+        .enable-audio .users        { opacity: 0.5; }
+        .enable-audio .users:before { content: ' ('; }
+        .enable-audio .users:after  { content: ' чел.)'; }
+
+        /*  Peer list
+         */
+
+        .peers                         { pointer-events: none; right: 70px; font-size: 20px; position: absolute; top: 60px; right: 70px; text-align: right; }
+        .peers .peer                   { line-height: 22px; margin-bottom: 0; position: relative; }
+        .peers .peer:after             { opacity: 0.25; position: absolute; left: 100%; top: 7px; margin-left: 5px; content: ' '; display: inline-block; width: 9px; height: 9px; border-radius: 9px; background: #42ac48; }
+        .peers .peer .name             { opacity: 0.25; max-width: 250px; display: inline-block; white-space: nowrap; text-overflow: ellipsis; overflow: hidden; }
+        .peers:not(.wait):empty:before { opacity: 0.25; content: 'Nobody\'s here :('; }
+
+        /*  Brush size adjust
+         */
+
+        .brush-size-adjust {
+            position: absolute;
+            left: 70px;
+            top: 70px;
+            width: 80px;
+            height: 80px;
+            display: inline-block;
+            opacity: 1;
+        }
+
+        .brush-size-adjust:hover,
+        .brush-size-adjust.active {
+            opacity: 1 !important;
+        }
+
+        .brush-size-adjust.fade:not(:hover):not(.active) {
+            transition: opacity 5s ease-out; }
+
+        .brush-size-adjust em:after {
+            content: 'pull to adjust';
+            position: absolute;
+            white-space: nowrap;
+            left: 80%;
+            top: 50%;
+            margin-top: -0.6em;
+            margin-left: 30px;
+            font-size: 30px;
+            opacity: 0;
+            transition: all 0.25s ease-in-out;
+            pointer-events: none;
+            font-style: normal;
+        }
+
+        .brush-size-adjust:hover em:after {
+            left: 100%;
+            opacity: 0.75;
+        }
+
+        .brush-size-adjust em {
+            box-shadow: 1px 1px 4px rgba(18, 17, 58,0.25);
+            position: absolute;
+            background: black;
+            border: 4px solid white;
+            left: 50%;
+            top:  50%;
+        }
+
+        .brush-size-adjust:not(.active) em {
+            transition: transform 0.1s ease-in-out;
+            transform: scale(0);
+        }
+
+        /*  Stream switch (copypasted from Futurico code base)
+         */
+
+        .b-stream_switch {
+            position: relative;
+            display: inline-block;
+            text-decoration:none;
+            color:rgb(18, 17, 58);
+            white-space:nowrap;
+            transition: color .2s;
+            z-index: 2;
+        }
+        .b-stream_switch_online.active {
+            color: #42ac48;;
+            z-index: 1;
+        }
+
+        .b-stream_switch_offline.active {
+            color: #d51e18;
+            z-index: 1;
+        }
+        .b-stream_switch:before {
+            content: "";
+            position: absolute;
+            top: 13px;
+            display: block;
+            width: 40px;
+            height: 25px;
+            border-radius: 10px;
+            background-color: #e0e0e1;
+        }
+        .b-stream_switch:after {
+            content: "";
+            display: block;
+            position: absolute;
+            top: 13px;
+            width: 25px;
+            height: 25px;
+            border-radius: 13px;
+            background-color: #42ac48;
+            transition: all .1s;
+        }
+        .b-stream_switch_online:after {
+            background-color: #d51e18;
+        }
+
+        .b-stream_switch:last-child {
+            margin-left: 63px;
+        }
+
+        .b-stream_switch:first-child:before {
+            right: -51px;
+        }
+        .b-stream_switch:first-child:after {
+            right: -76px;
+            top: 12px;
+            border: 1px solid #42ac48;
+        }
+        .b-stream_switch.active:first-child:after {
+            right: -36px;
+            top: 13px;
+            border: none;
+        }
+        .b-stream_switch:last-child:before {
+            left: -53px;
+        }
+        .b-stream_switch:last-child:after {
+            left: -53px;
+            top: 12px;
+            border: 1px solid #d51e18;
+        }
+
+        .b-stream_switch.active:last-child:after {
+            left: -38px;
+            top: 13px;
+            border: none;
+        }
+    </style>
+
+    <script>
+
+        /*  Skylink voice API works only if HTTPS enabled
+         */
+        if ((('xpl.github.io'  === window.location.host) ||
+             ('xpl.github.com' === window.location.host)) && (window.location.protocol != "https:")) {
+            window.location.protocol = "https"
+        }
+
+        /*  Get one at http://developer.temasys.com.sg
+         */
+        var SKYLINK_API_KEY = '0f66f2b4-2bda-47ee-876e-12b71e377b95'
+
+
+        /*  Merges arrays, keeping given element order.
+            TODO: algoritm is O(N²) in worst case, can be optimized to O(N log N).
+
+            merge ([['all','your',                'to','us'],
+                    [      'your',       'belong',     'us'],
+                    [             'base','belong','to'     ],
+                    [      'your','base'                   ]]),
+                    ['all','your','base','belong','to','us']) } }
+
+            cfg accepts { key: fn, sort: fn } optional parameters for key extraction and sorting
+         */
+        function linearMerge (arrays, cfg) { cfg = cfg || { key: _.identity }
+
+            var head = { key: null, next: {} }
+            var nodes = {}
+
+            _.each (arrays, function (arr) {
+                for (var i = 0, n = arr.length, prev = head, node = undefined; i < n; i++, prev = node) {
+                    var item = arr[i]
+                    var key  = cfg.key (item)
+                    node = nodes[key] || (nodes[key] = { key: key, item: item, next: {} })
+                    if (prev) {
+                        prev.next[key] = node } } })
+
+            var decyclize = function (visited, node) { visited[node.key] = true
+
+                node.next = _.chain (_.values (node.next))
+                                .filter (function (node) { return !(node.key in visited) })
+                                .map (decyclize.partial (visited)).value ()
+                
+                delete visited[node.key]; return node }
+
+            var ordered = function (a, b) {
+                return (a === b) || _.some (a.next, function (aa) { return ordered (aa, b) }) }
+
+            var flatten = function (node) { if (!node) return []
+
+                var next = cfg.sort ? _.sortBy (node.next || [], cfg.sort) : (node.next || [])
+
+                return [node].concat (flatten (_.reduce (next, function (a, b) {
+
+                    if (a === b)             { return a }
+                    else if (ordered (b, a)) { b.next.push (a); return b }
+                    else                     { a.next.push (b); return a } }))) }
+
+            return _.rest (_.pluck (flatten (decyclize ({}, head)), 'item')) }
+
+
+
+        /*  Helper procedure for .appear and .disappear CSS classes,
+            toggling display: none; when transition ends (and calling the callback)
+         */
+        $.fn.extend ({
+
+            toggleVisibility: function (yes, done) {
+                return this.toggleVisibilityWithClasses (['appear', 'disappear'], yes, done) },
+
+            toggleVisibilityWithClasses: function (cls, yes, done) { yes = (yes === undefined) ? true : yes
+                if ((this.css ('display') === 'none') === yes) {
+                    if (yes) {
+                        this.css ('display', '') }
+                    return this.animateWith (yes ? cls[0] : cls[1], function () {
+                        if (!yes) {
+                            this.css ('display', 'none') }
+                        if (done) { done () } }) }
+                return this } })
+
+
+        /*  Tag methods with this thing to declare method as Skylink API subscriber
+         */
+        _.defineTagKeyword ('skylinkEvent')
+
+
+        /*  Manages local history persistence
+         */
+        History = $trait ({
+
+            $const: {
+                localStorageKey: ',,,_^__^_,,,history,,,_^__^_,,,',
+                maxMessagesToSave: 50 },
+
+            synced: $observableProperty (false),
+
+            messages: $observableProperty ([]),
+
+            beforeInit: function () {
+                this.messages = (_.json (localStorage.getItem (History.localStorageKey)) || {}).messages || []
+                this.messagesChange (function (v) {
+                                localStorage.setItem (History.localStorageKey, _.json ({ messages: _.last (v, History.maxMessagesToSave) }))
+                                this.publishHistory () }) },
+
+            publishHistory: $debounce ({ wait: 2000 }, function () {
+                this.setUserData ({ history: this.messages }) }) })
+
+
+        /*  Manages merging of histories from remote peers with local history
+         */
+        SyncProtocol = $trait ({
+
+            currentProtocolVersion: $property (1338 + 2),
+
+            synced: $observableProperty (false),
+
+            beforeInit: function () {
+                this.userData.protocolVersion = this.currentProtocolVersion },
+
+            offline: function () {
+                this.synced = false },
+
+            otherPeerJoined: function () {
+                if (this.synced) { this.mergePeerHistories () }
+                else             { this.scheduleMergingOfPeerHistories () } },
+
+            scheduleMergingOfPeerHistories: $throttle ({ leading: false, wait: 2000 }, $alias ('mergePeerHistories')),
+
+            mergePeerHistories: function () {
+
+                var peers = _.nonempty (_.pluck (this.peers, 'userData'))
+                var peerHistories = _.nonempty (_.map (_.sortBy (peers, 'uptime'), function (peerData) {
+                    return ((peerData.protocolVersion === this.currentProtocolVersion) && peerData.history) || undefined }, this))
+
+                this.messages = linearMerge (peerHistories, { key: _.property ('tag') })
+                this.publishHistory ()
+                this.synced = true } })
+
+
+        /*  Manages persistence of names (remote and local)
+         */
+        PeerNameTracking = $trait ({
+
+            $defaults: {
+                peerNames: {},
+                userData: { name: window.localStorage.getItem ('^__^_username_^__^') || ('anonymous_' + Format.randomHexString (4)) } },
+
+            name: $property ({
+                        get: function ()     { return this.userData.name },
+                        set: function (name) { window.localStorage.setItem ('^__^_username_^__^', name)
+                                               this.setUserData ({ name: name }) } }),
+
+            peerName: function (id, info) {
+                return (info && info.userData && info.userData.name) || '' },
+
+            peerEl: function (id) {
+                return this.peersEl.find ('.peer.id' + id) },
+
+            otherPeerJoined: function (id, info) { var name = this.peerName (id, info)
+                if (name) {
+                    $('<div class="peer">')
+                        .addClass ('id' + id)
+                        .append ($('<span class="name">').text (name))
+                        .appendTo (this.peersEl)
+                        .animateWith ('appear') } },
+
+            afterPeerUpdated: function (id, info, self) {
+                var oldName = this.peerNames[id]
+                var newName = this.peerNames[id] = this.peerName (id, info)
+                if (oldName) {
+                    if (oldName !== newName) {
+                        if (self) {
+                            this.sendMessage ({ newNick: newName, oldNick: oldName }) }
+                        this.peerEl (id).find ('.name').text (newName) } } },
+
+            afterPeerLeft: function (id, info, self) {
+                delete this.peerNames[id]
+                this.peerEl (id).animateWith ('disappear', $.fn.remove) },
+
+            afterInit: function () {
+                this.peersEl = this.el.find ('.peers') } })
+
+
+        /*  Uptime is used as a parameter in sync algorithm
+         */
+        UptimeTracking = $trait ({
+
+            uptimeRefreshInterval: $property (10),
+
+            $defaults: { userData: { uptime: 0 } },
+
+            offline: function () {
+                this.setUserData ({ uptime: 0 })
+                window.clearInterval (this.uptimeTimer) },
+
+            online: function () {
+                this.startUptimeTracking () },
+
+            startUptimeTracking: function () { this.uptimeTimer =
+                                                    window.setInterval (this.$ (
+                                                        function () { if (this.connected) {
+                                                            this.setUserData ({
+                                                                uptime: this.userData.uptime +
+                                                                        this.uptimeRefreshInterval }) } }),
+                                                        this.uptimeRefreshInterval * 1000) } })
+
+
+        /*  User data is random JSON object visible by other peers
+         */
+        UserDataTracking = $trait ({
+
+            $defaults: { userData: {} },
+
+            skylinkReady: function () {
+                this.publishUserData () },
+
+            setUserData: function (piece) {
+                _.extend (this.userData, piece)
+                this.schedulePublishUserData () },
+
+            schedulePublishUserData: $throttle ({ leading: false, wait: 1000 }, $alias ('publishUserData')),
+
+            publishUserData: function (userData) {
+                this.skylinkReady (function () {
+                    this.skylink.setUserData (this.userData = userData || this.userData) }) } })
+
+
+        /*  All things related to voice chat
+         */
+        Voice = $trait ({
+
+            peerVideoEl: function (id) { // used for audio streams
+                 var vid = $('#' + id)
+                if (!vid.length) {
+                     vid = $('<video style="pointer-events:none; transform: rotateY(-180deg);" autoplay>')
+                                .attr ('id', id)
+                                .appendTo (document.body) }
+                return vid },
+
+            incomingStream: $skylinkEvent (function (id, stream, self) { if (!self) { //$('#' + id).remove () // remove prev video element if any
+
+                attachMediaStream (this.peerVideoEl (id)[0], stream)
+
+                this.updateAudioUsersCount ()
+
+                this.peerEl (id).find ('i').attr ('class', 'fa fa-microphone') } }),
+
+            afterInit: function () {
+                $('<a href="javascript:{}" class="btn enable-audio b-stream_switch b-stream_switch_online" data-state="true">')
+                    .append ('<span>enable mic</span>')
+                    .appendTo (this.chatEl.find ('.buttons'))
+                    .touchClick (this.$ (function (e) { var btn = $(e.delegateTarget)
+                                                            btn.addClass ('wait')
+                                                            this.peersEl.addClass ('wait')
+                                                            var yes = !(btn.hasClass ('active') || false)
+                                                            this.skylink.joinRoom ({ audio: yes, video: false }, this.$ (function () {
+                                                                this.peersEl.removeClass ('wait')
+                                                                $(e.delegateTarget).removeClass ('wait').toggleClass ('active', yes) })) })) },
+            updateAudioUsersCount: function () {
+                this.el.find ('.enable-audio .users')
+                    .text ($('video').length)
+                    .css ('display', $('video').length ? '' : 'none') },
+
+            otherPeerLeft: function (id, info) {
+                $('#' + id).remove ()
+                this.updateAudioUsersCount () } })
+
+
+        /*  Skylink is external web service for peer tracking (WebRTC cannot yet work stand-alone)
+         */
+        SkylinkAccess = $trait ({
+
+            connected: $observableProperty (false),
+
+            online: $trigger (),
+            offline: $trigger (),
+
+            peers: {},
+
+            skylinkReady: $barrier (function () { this.skylink.joinRoom ({ audio: false, video: false }) }),
+
+            beforeInit: function () { this.connectedChange.when (false, this.offline);
+                                      this.connectedChange.when (true,  this.online);
+
+                (this.skylink = new Skylink ())
+                    .init ({ apiKey: SKYLINK_API_KEY },
+                        this.skylinkReady.arity0);
+
+                this.enumMethods ($skylinkEvent.is, function (fn, name) {
+                    this.skylink.on (name, fn) }) },
+
+            peerJoined: $skylinkEvent (function (id, info, self) { this.peers[id] = info
+                                            if (self) { this.connected = true }
+                                            else      { this.otherPeerJoined (id, info) } }),
+
+            otherPeerJoined: $trigger (),
+
+            peerUpdated: $bindable ($skylinkEvent (function (id, info, self) { this.peers[id] = info })),
+            peerLeft:    $bindable ($skylinkEvent (function (id, info, self) { delete this.peers[id]
+                            if (self) { this.connected = false }
+                            else      { this.otherPeerLeft (id, info) } })),
+
+            otherPeerLeft: $trigger (),
+
+            receivedMessageFromOtherPeer: $trigger (),
+            receivedMessage:              $trigger (),
+
+            incomingMessage: $skylinkEvent (function (message, id, info, self) { var json = _.json (message.content)
+                this.receivedMessage (json, id, info, self)
+                if (!self) {
+                    this.receivedMessageFromOtherPeer (json, id, info) } }),
+
+            sendMessage: function (obj, peerId) {
+                var str = _.json (_.extend ({ tag: Format.randomHexString (6), when: Date.now () }, obj))
+                return peerId ?
+                    this.skylink.sendP2PMessage (str, peerId) :
+                    this.skylink.sendP2PMessage (str) } })
+
+
+        /*  All things related to chat itself
+         */
+        Chat = $trait ({
+
+            chatDomReady: $barrier (),
+            chatVisible: $barrier (),
+
+            nickChangeActionText: $static ($property (function () {
+                return ['became', 'renamed to', 'changed nick to', 'now known as', 'transmorfed to'].random })),
+
+            connected: function (v) { this.chatDomReady (function () {
+
+                this.peersEl.toggleVisibility (v)
+                this.chatEl.toggleVisibility (v)
+                this.loadingEl.toggleVisibility (!v)
+                
+                if (v) { this.chatVisible (true) } }) },
+
+            messages: function (v) { this.refreshMessages () },
+
+            refreshMessages: function () { this.chatVisible (function () { var totalHeight = this.messagesEl.outerBBox ().bottom
+
+                this.messagesEl.empty ().append (_.map (this.messages, function (msg, i, messages) {
+                    return $('<div class="entry">')
+                        .addClass (msg.action)
+                        .css ('opacity', _.rescale (messages.length - i - 1, [0, (totalHeight / 28) * 1.33], [0.75, 0], { clamp: true }))
+                        .append ($('<span class="who">').text (msg.who || ''))
+                        .append ($('<span class="what">').html ((msg.what || '').escaped.replace (/\n/g, '<br>'))) }))
+
+                this.adjustLeftOffset.postpone () }) },
+
+            receivedMessage: function (msg, id, info, self) {
+
+                if (msg.me) {
+                    this.storeMessage ({ tag: msg.tag, when: msg.when, action: 'me', what: msg.me, who: this.peerName (id, info) }) }
+
+                else if (msg.newNick) {
+                    this.storeMessage ({ tag: msg.tag, when: msg.when, action: 'nick-change',
+                                         what: Chat.nickChangeActionText + ' ' + msg.newNick,
+                                         who: msg.oldNick }) }
+
+                else if (msg.text) {
+                    this.storeMessage ({ tag: msg.tag, when: msg.when, action: 'message', what: msg.text, who: this.peerName (id, info) }) } },
+
+            afterInit: function () {
+
+                this.loadingEl  = this.el.find ('.loading')
+                this.chatEl     = this.el.find ('.chat')
+                this.messagesEl = this.el.find ('.messages')
+                this.inputEl    = this.initInput ()
+
+                this.chatDomReady ()
+
+                $(window).resize (this.refreshMessages) },
+
+            processCommand: function (cmd, value) {
+                switch (cmd) {
+                    case 'clear':
+                        this.messages = []                      ;break
+                    case 'me':
+                        this.sendMessage ({ me: value })        ;break
+                    case 'nick':
+                        if (value) {
+                            this.name = value.limitedTo (50) }  ;break } },
+
+            initInput: function () {
+                this.chatEl
+                    .find ('input')
+                        .touchClick (function (e) { $(this).focus () })
+                        .keydown (this.$ (function (e) {
+                            if (e.keyCode === 13) { var text = e.delegateTarget.value
+                                                               e.delegateTarget.value = ''
+                                    if ((text || '').trimmed.length) {
+                                        var cmd = text.match (/^\/([^\s]+)\s(.+)$/)
+                                        if (cmd) {
+                                            this.processCommand (cmd[1], cmd[2].trimmed) }
+                                        else {
+                                            this.sendMessage ({ text: text }) } } } })) },
+
+            storeMessage: function (msg) {
+                if (msg.who) {
+                    this.messages = this.messages.concat ([msg]) } },
+
+            adjustLeftOffset: function () {
+                var maxWhoWidth = _.max (_.map (this.messagesEl.find ('.message .who'), function (who) { return who.offsetWidth + 9 }))
+                var left = _.clamp (maxWhoWidth, 0, 250)
+                this.chatEl.css ({
+                    paddingLeft: left + 87,
+                    transformOrigin: (this.chatEl.width () - left) * 0.5 + 'px 50%' }) } })
+
+
+        /*  Fancy brush size widget. Also allows binding to 'flipped' action (we manage color picking via that action – defined in other trait)
+         */
+        BrushSizeAdjust = $component ({
+
+            $requires: {
+                min:   'number',
+                max:   'number' },
+
+            value: $postpones ($observableProperty ()),
+            scale: $property (function () { return this.value / this.handleSize.x }),
+
+            controlSize: $property (function () { return new Vec2 (this.max * 2) }),
+            handleSize:  $property (function () { return new Vec2 (this.max)     }),
+            localCenter: $property (function () { return this.controlSize.half   }),
+
+            flipped: $observableProperty (false),
+
+            fade: function (on) {
+                this.el.toggleClass ('fade', on).css ('opacity', on ? 0 : 1); return this },
+
+            pop: function () {
+                this.fade          (false)
+                this.fade.postpone (true) },
+
+            init: function () {
+                this.el = $('<div class="brush-size-adjust fade" style="opacity: 0;">')
+                    .css (this.controlSize.asWidthHeight)
+                    .css (this.localCenter.inverse.asLeftTopMargin)
+                    .append (this.handle = $('<em>')
+                        .css (this.localCenter.asLeftTop)
+                        .css ({
+                            width:        this.handleSize.x + 4,
+                            height:       this.handleSize.y + 4,
+                            marginLeft:  -Math.floor (this.handleSize.x / 2.0) - 2,
+                            marginTop:   -Math.floor (this.handleSize.y / 2.0) - 2,
+                            borderRadius: this.handleSize.x }))
+                    .nodoubletapzoom ()
+                    .drag ({
+                        callMoveAtStart: true,
+                        context: this,
+                        cls: 'active',
+                        start: function (where) { return { value: this.value, flipped: this.flipped, where: where, center: this.localCenter } },
+                        move: function (memo, offset, where) {
+
+                            var travelToCenter = where.projectOnRay (memo.center, memo.where.sub (memo.center))
+                            var projectedValue = (memo.value -
+                                (1.0 - travelToCenter) *
+                                       memo.where.distance (memo.center))
+
+                            this.flipped = (projectedValue < 0) ? !memo.flipped : memo.flipped
+                            this.sizeTo (memo.projectedValue = Math.abs (projectedValue), { silent: true }) },
+
+                        end: function (memo) {
+                            this.sizeTo (_.clamp (memo.projectedValue, this.min, this.max), { spring: memo.projectedValue > this.max }) } })
+
+                this.valueChange (this.sizeTo.tails ({ silent: true }))
+
+                $(document).keydown (this.$ (function (e) { if (e.target.tagName !== 'INPUT') { var factor = 1.2
+                    if (e.keyCode === 187) { // +
+                        this.grow (factor) }
+                    else if (e.keyCode === 189) { // -
+                        this.grow (1.0 / factor) } } })) },
+
+            grow: function (factor) {
+                this.scaleTo (this.scale * factor, { spring: true })
+                this.pop () },
+
+            sizeTo: function (target, cfg) {
+                this.scaleTo (target / this.handleSize.x, cfg) },
+
+            scaleTo: function (target, cfg) { cfg = cfg || {}
+
+                if (cfg.silent !== true) { var currentTarget = this.currentScaleTarget
+
+                    this.value = _.clamp (target * this.handleSize.x, this.min, this.max)
+
+                    if (cfg.spring === true) {
+                        var oscillate = this.$ (function (center, amp) {
+                            if (Math.abs (1.0 - amp) < 0.05) {
+                                this.handle.transform ({ scale: center }) }
+                            else {
+                                this.handle.transform ({ scale: center * amp }).transitionend (function () {
+                                    oscillate (center, ((1.0/amp) + 1) * 0.5) }) } })
+
+                        oscillate (target, target / currentTarget) } }
+
+                else {
+                    this.handle.transform ({ scale: target }) }
+
+                this.currentScaleTarget = target },
+
+            destroy: function () { this.el.destroy (); delete this.el } })
+
+
+        /*  Manages high-level paint operations and UI
+         */
+        Paint = $trait ({
+
+            $defaults: {
+                lines: {} },
+
+            afterInit: function () {
+
+                this.lineDrawer = new LineDrawer ({
+
+                                        canvas: $.svg ('svg')
+                                            .css ({ pointerEvents: 'none',
+                                                         position: 'absolute',
+                                                             left:  0,
+                                                              top:  0,
+                                                            width:  '100%',
+                                                           height:  '100%' }).insertBefore (this.chatEl),
+
+                                        surface: $('<div class="decal">')
+                                            .css ({ position: 'absolute',
+                                                    left: 0, right: 0, top: 0, bottom: 0,
+                                                    background: '-webkit-gradient(radial, 19% 70%, 30, 22% 50%, 600, ' +
+                                                                'from(rgba(255, 255, 255, 0.88)),' +
+                                                                'to(rgba(255, 255, 255, 0' }).prependTo (this.chatEl) })
+
+                this.lineDrawer.beginLine.onAfter (this.$ (function (cfg, line) {
+                            if (line.mine) { var msg = _.extend ({ id: Format.randomHexString (6) }, _.pick (cfg, 'at', 'color', 'width'))
+                                                                                   this.sendDraw (msg)
+                                _.onAfter (line, 'append', this.$ (function (pt) { this.sendDraw (_.extend (msg, { at: pt })) })) } }))
+
+                var brushSizeAdjust = new BrushSizeAdjust ({
+                    min: 4,
+                    max: 70,
+                    value:       this.lineDrawer.brushSize,
+                    valueChange: this.lineDrawer.brushSizeChange })
+
+                this.lineDrawer.brushHueChange (function (x) { brushSizeAdjust.handle.css ('background', _.hue2CSS (x)) })
+                this.lineDrawer.drawMove.onBefore (brushSizeAdjust.pop)
+
+                brushSizeAdjust.flippedChange (Math.random.then (this.lineDrawer.brushHueChange))
+                brushSizeAdjust.el.appendTo ($('<div class=".paint-controls">').css ({
+                                                    position: 'absolute',
+                                                    left: 0,
+                                                    top: 0,
+                                                    opacity: 0.35,
+                                                    zIndex: 3 }).appendTo (document.body)) },
+
+            receivedMessageFromOtherPeer: function (msg, id, info) { if (msg.draw) { 
+                            var lineId = id + msg.id
+                if (!this.lines[lineId]) { this.lines[lineId] = this.lineDrawer.beginLine (msg) }
+                else                     { this.lines[lineId].append (msg.at) } } },
+
+            sendDraw: function (draw) {
+                this.sendMessage (_.extend ({ draw: true }, draw)) }, })
+
+
+        /*  Manages drawing of SVG lines
+         */
+        LineDrawer = $component ({
+
+            $requires: {
+                canvas:  $,
+                surface: $ },
+
+            center: $property (function () { return this.canvas.outerBBox ().center }),
+
+            brushSize: $observableProperty (20),
+            brushHue:  $observableProperty (Math.random ()),
+
+            init: function () {
+
+                this.canvas.append (this.transformGroup = $.svg ('g'))
+                this.surface.drag ({ callMoveAtStart: true, start: this.drawStart, move: this.drawMove })
+
+                $(window).resize (this.onSizeChange)
+                                  this.onSizeChange () },
+
+            drawStart: $bindable (function (position) {
+                return this.beginLine ({ at: position.sub (this.center), color: this.brushHue, width: this.brushSize, mine: true }) }),
+
+            drawMove: $bindable (function (line, offset, position) {
+                line.append (position.sub (this.center)) }),
+
+            beginLine: $bindable (function (cfg) { return {
+
+                points: [new Vec2 (cfg.at)],
+                mine: cfg.mine,
+                path: $.svg ('path')
+                    .attr ({
+                        opacity: 0.2,
+                        stroke: _.hue2CSS (cfg.color),
+                        fill: 'none',
+                        'stroke-width': cfg.width,
+                        'stroke-linecap': 'round',
+                        'stroke-linejoin': 'round' })
+                    .appendTo (this.transformGroup),
+
+                append: function (pt) {
+                    this.points.push (new Vec2 (pt))
+                    this.path.attr ('d', _.map (this.points, function (pt, i) {
+                        return (i === 0 ? 'M' : 'L') + pt.separatedWith (' ') }).join (' ')) } } }),
+
+            onSizeChange: $listener (function () {
+                this.transformGroup.attr ('transform', this.center.asTranslate) }) })
+
+        function hasNativeRTCSupport () {
+            return window.RTCPeerConnection ||
+                   window.webkitRTCPeerConnection ||
+                   window.mozRTCPeerConnection ||
+                   window.msRTCPeerConnection }
+
+        if (hasNativeRTCSupport ()) { // Check explicitly because Skylink API tries to install plugin on Safari, and it disturbs users
+
+            $.getScript ("https://cdn.temasys.com.sg/skylink/skylinkjs/latest/skylink.complete.min.js", function (data, textStatus, jqxhr) {
+
+                $(document).ready (function () {
+
+                    $('html').toggleClass ('touch', Platform.touch || false)
+
+                    window.live = $singleton (Component, {
+
+                        $defaults: {},
+
+                        el: $property (_.constant ($(document.body))),
+
+                        $traits: [UserDataTracking,
+                                  SkylinkAccess,
+                                  History,
+                                  SyncProtocol,
+                                  PeerNameTracking,
+                                  UptimeTracking,
+                                  Chat,
+                                  Voice,
+                                  Paint] }) }) }) }
+
+        /*  No native RTC support
+         */
+        else {
+            alert ('Sorry, your browser does not support WebRTC.') }
+
+    </script>
+
+</head>
+<body>
+    <div class="loading"><svg version="1.1" xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink" x="0px" y="0px" width="20px" height="20px" viewBox="0 0 20 20" enable-background="new 0 0 20 20" xml:space="preserve"> <path d="M15.05,11.888c-0.268-0.055-0.535,0.118-0.59,0.39c-0.426,2.082-2.281,3.594-4.41,3.594c-2.481,0-4.5-2.019-4.5-4.5 c0-2.649,1.851-4.5,4.5-4.5c0.554,0,1.383,0.002,2.051,0.005L9.361,8.975c-0.22,0.168-0.261,0.481-0.093,0.7 c0.098,0.129,0.247,0.196,0.396,0.196c0.106,0,0.214-0.033,0.304-0.104l3.78-2.896c0.123-0.095,0.197-0.242,0.195-0.398 c0-0.156-0.074-0.304-0.199-0.397l-3.78-2.847c-0.219-0.164-0.532-0.123-0.7,0.099c-0.166,0.221-0.122,0.534,0.099,0.7l2.454,1.848 c-0.609-0.002-1.29-0.004-1.768-0.004c-3.187,0-5.5,2.313-5.5,5.5c0,3.032,2.468,5.5,5.5,5.5c2.602,0,4.869-1.848,5.391-4.393 C15.495,12.208,15.321,11.943,15.05,11.888z"/></svg></path></svg></div>
+    <div class="chat" style="display: none;">
+        <div class="block messages" style="pointer-events: none;"></div>
+        <div class="block input">
+            <input type="text" placeholder="Tell us something...">
+            <div class="buttons"></div>
+        </div>
+    </div>
+    <div class="peers" style="display:none;"></div>
+</body>
+</html>
