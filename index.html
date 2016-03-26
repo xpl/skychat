@@ -747,7 +747,7 @@
                 min:   'number',
                 max:   'number' },
 
-            value: $postpones ($observableProperty ()),
+            value: $postpones ($observableProperty (Math.random ())),
             scale: $property (function () { return this.value / this.handleSize.x }),
 
             controlSize: $property (function () { return new Vec2 (this.max * 2) }),
