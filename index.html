@@ -177,10 +177,14 @@
         .chat .entry.message .what { color: rgba(0,0,0,0.75); }
 
 
+        /*  Help button
+         */
+        .chat-help span { padding: 20px; opacity: 0.5; }
+
         /*  Audio toggle
          */
 
-        .enable-audio               { opacity: 0.5; }
+        .enable-audio               { opacity: 0.5; margin-left: 100px !important; }
         .enable-audio .users        { opacity: 0.5; }
         .enable-audio .users:before { content: ' ('; }
         .enable-audio .users:after  { content: ' чел.)'; }
@@ -608,28 +612,28 @@
 
             peers: {},
 
-            skylinkReady: $barrier (function () { this.skylink.joinRoom ({ audio: false, video: false }) }),
+            skylinkReady: $barrier (function () {
+                                        this.skylink.joinRoom ({ audio: false, video: false }) }),
 
             beforeInit: function () { this.connectedChange.when (false, this.offline);
                                       this.connectedChange.when (true,  this.online);
 
                 (this.skylink = new Skylink ())
-                    .init ({ apiKey: SKYLINK_API_KEY },
-                        this.skylinkReady.arity0);
+                    .init ({ apiKey: SKYLINK_API_KEY }, this.skylinkReady.arity0);
 
                 this.enumMethods ($skylinkEvent.is, function (fn, name) {
-                    this.skylink.on (name, fn) }) },
+                                                        this.skylink.on (name, fn) }) },
 
-            peerJoined: $skylinkEvent (function (id, info, self) { this.peers[id] = info
-                                            if (self) { this.connected = true }
-                                            else      { this.otherPeerJoined (id, info) } }),
+            peerJoined: $skylinkEvent (function (id, info, self) {  this.peers[id] = info
+                                                                    if (self) { this.connected = true }
+                                                                    else      { this.otherPeerJoined (id, info) } }),
 
             otherPeerJoined: $trigger (),
 
-            peerUpdated: $bindable ($skylinkEvent (function (id, info, self) { this.peers[id] = info })),
-            peerLeft:    $bindable ($skylinkEvent (function (id, info, self) { delete this.peers[id]
-                            if (self) { this.connected = false }
-                            else      { this.otherPeerLeft (id, info) } })),
+            peerUpdated: $bindable ($skylinkEvent (function (id, info, self) {  this.peers[id] = info })),
+            peerLeft:    $bindable ($skylinkEvent (function (id, info, self) {  delete this.peers[id]
+                                                                                if (self) { this.connected = false }
+                                                                                else      { this.otherPeerLeft (id, info) } })),
 
             otherPeerLeft: $trigger (),
 
@@ -738,6 +742,16 @@
                     paddingLeft: left + 87,
                     transformOrigin: (this.chatEl.width () - left) * 0.5 + 'px 50%' }) } })
 
+
+        /*  
+         */
+        HelpButton = $trait ({
+            afterInit: function () {
+                $('<a href="javascript:{}" class="btn chat-help">')
+                    .append ('<span>?</span>')
+                    .appendTo (this.chatEl.find ('.buttons'))
+                    .touchClick (this.$ (function (e) {
+                        alert ('\nAvailable commands:\n\n/nick new_nick\n/me something\n\n') })) } })
 
         /*  Fancy brush size widget. Also allows binding to 'flipped' action (we manage color picking via that action – defined in other trait)
          */
@@ -966,6 +980,7 @@
                                   PeerNameTracking,
                                   UptimeTracking,
                                   Chat,
+                                  HelpButton,
                                   Voice,
                                   Paint] }) }) }) }
 
