@@ -721,7 +721,7 @@
                             if (e.keyCode === 13) { var text = e.delegateTarget.value
                                                                e.delegateTarget.value = ''
                                     if ((text || '').trimmed.length) {
-                                        var cmd = text.match (/^\/([^\s]+)\s(.+)$/)
+                                        var cmd = text.match (/^\/([^\s]+)\s?(.*)$/)
                                         if (cmd) {
                                             this.processCommand (cmd[1], cmd[2].trimmed) }
                                         else {
