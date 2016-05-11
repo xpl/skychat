@@ -483,7 +483,7 @@
 
             $defaults: {
                 peerNames: {},
-                userData: { name: localStorage.getItem ('^__^_username_^__^') || ('anonymous_' + Format.randomHexString (4)) } },
+                userData: { name: localStorage.getItem ('^__^_username_^__^') || ('anonymous_' + String.randomHex (4)) } },
 
             name: $property ({
                         get: function ()     { return this.userData.name },
@@ -651,7 +651,7 @@
                     this.receivedMessageFromOtherPeer (json, id, info) } }),
 
             sendMessage: function (obj, peerId) {
-                var str = _.json (_.extend ({ tag: Format.randomHexString (6), when: Date.now () }, obj))
+                var str = _.json (_.extend ({ tag: String.randomHex (6), when: Date.now () }, obj))
                 return peerId ?
                     this.skylink.sendP2PMessage (str, peerId) :
                     this.skylink.sendP2PMessage (str) } })
@@ -879,7 +879,7 @@
                                                                 'to(rgba(255, 255, 255, 0' }).prependTo (this.chatEl) })
 
                 this.lineDrawer.beginLine.onAfter (this.$ (function (cfg, line) {
-                            if (line.mine) { var msg = _.extend ({ id: Format.randomHexString (6) }, _.pick (cfg, 'at', 'color', 'width'))
+                            if (line.mine) { var msg = _.extend ({ id: String.randomHex (6) }, _.pick (cfg, 'at', 'color', 'width'))
                                                                                    this.sendDraw (msg)
                                 _.onAfter (line, 'append', this.$ (function (pt) { this.sendDraw (_.extend (msg, { at: pt })) })) } }))
 
