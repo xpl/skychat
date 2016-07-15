@@ -914,8 +914,8 @@
         LineDrawer = $component ({
 
             $requires: {
-                canvas:  $,
-                surface: $ },
+                canvas:  'object',
+                surface: 'object' },
 
             center: $property (function () { return this.canvas.outerBBox ().center }),
 
