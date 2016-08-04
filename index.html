@@ -6,12 +6,8 @@
     <meta http-equiv="Content-Type" content="text/html; charset=utf-8">
     <title>Skychat</title>
 
-    <!-- jQuery, underscore -->
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/jquery/3.0.0-alpha1/jquery.min.js"></script>
-    <script src="https://cdnjs.cloudflare.com/ajax/libs/underscore.js/1.8.3/underscore-min.js"></script>
-
     <!-- Useless Framework, for OOP system and $traits (http://github.com/xpl/useless) -->
-    <script src="https://rawgit.com/xpl/useless/master/build/useless.micro.js"></script>
+    <script src="https://rawgit.com/xpl/useless/master/build/useless.client.js"></script>
 
     <!-- Uncomment this to enable Panic.js error reports (useful for debugging purposes) -->
     <script src="https://rawgit.com/xpl/useless/master/build/useless.devtools.js"></script>
@@ -339,6 +335,8 @@
 
     <script>
 
+        $ = jQuery
+
         /*  Skylink voice API works only if HTTPS enabled. So redirect users to HTTP version of GitHub pages.
          */
         if ((('xpl.github.io'  === window.location.host) ||
@@ -349,55 +347,6 @@
         /*  Get one at http://developer.temasys.com.sg
          */
         var SKYLINK_API_KEY = '0f66f2b4-2bda-47ee-876e-12b71e377b95'
-
-
-        /*  Merges arrays, keeping given element order.
-            TODO: algoritm is O(N²) in worst case, can be optimized to O(N log N).
-
-            merge ([['all','your',                'to','us'],
-                    [      'your',       'belong',     'us'],
-                    [             'base','belong','to'     ],
-                    [      'your','base'                   ]]),
-                    ['all','your','base','belong','to','us']) } }
-
-            cfg accepts { key: fn, sort: fn } optional parameters for key extraction and sorting
-         */
-        function linearMerge (arrays, cfg) { cfg = cfg || { key: _.identity }
-
-            var head = { key: null, next: {} }
-            var nodes = {}
-
-            _.each (arrays, function (arr) {
-                for (var i = 0, n = arr.length, prev = head, node = undefined; i < n; i++, prev = node) {
-                    var item = arr[i]
-                    var key  = cfg.key (item)
-                    node = nodes[key] || (nodes[key] = { key: key, item: item, next: {} })
-                    if (prev) {
-                        prev.next[key] = node } } })
-
-            var decyclize = function (visited, node) { visited[node.key] = true
-
-                node.next = _.chain (_.values (node.next))
-                                .filter (function (node) { return !(node.key in visited) })
-                                .map (decyclize.partial (visited)).value ()
-                
-                delete visited[node.key]; return node }
-
-            var ordered = function (a, b) {
-                return (a === b) || _.some (a.next, function (aa) { return ordered (aa, b) }) }
-
-            var flatten = function (node) { if (!node) return []
-
-                var next = cfg.sort ? _.sortBy (node.next || [], cfg.sort) : (node.next || [])
-
-                return [node].concat (flatten (_.reduce (next, function (a, b) {
-
-                    if (a === b)             { return a }
-                    else if (ordered (b, a)) { b.next.push (a); return b }
-                    else                     { a.next.push (b); return a } }))) }
-
-            return _.rest (_.pluck (flatten (decyclize ({}, head)), 'item')) }
-
 
 
         /*  Helper procedure for .appear and .disappear CSS classes,
@@ -468,11 +417,16 @@
 
             mergePeerHistories: function () {
 
+                var messagesByTag = {}
+                var uniqByTag = function (msgs) {
+                    return _.map (msgs, function (msg) {
+                        return messagesByTag[msg.tag] || (messagesByTag[msg.tag] = msg) }) }
+
                 var peers = _.nonempty (_.pluck (this.peers, 'userData'))
                 var peerHistories = _.nonempty (_.map (_.sortBy (peers, 'uptime'), function (peerData) {
-                    return ((peerData.protocolVersion === this.currentProtocolVersion) && peerData.history) || undefined }, this))
+                    return ((peerData.protocolVersion === this.currentProtocolVersion) && uniqByTag (peerData.history)) || undefined }, this))
 
-                this.messages = linearMerge (peerHistories, { key: _.property ('tag') })
+                this.messages = peerHistories.topoMerge ()
                 this.publishHistory ()
                 this.synced = true } })
 
