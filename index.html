@@ -7,10 +7,10 @@
     <title>Skychat</title>
 
     <!-- Useless Framework, for OOP system and $traits (http://github.com/xpl/useless) -->
-    <script src="https://rawgit.com/xpl/useless/master/build/useless.client.js"></script>
+    <script src="https://rawgit.com/xpl/useless/master/build/useless.client.min.js"></script>
 
     <!-- Uncomment this to enable Panic.js error reports (useful for debugging purposes) -->
-    <script src="https://rawgit.com/xpl/useless/master/build/useless.devtools.js"></script>
+    <!--<script src="https://rawgit.com/xpl/useless/master/build/useless.devtools.js"></script>-->
 
     <style type="text/css">
 
@@ -370,7 +370,7 @@
 
         /*  Tag methods with this thing to declare method as Skylink API subscriber
          */
-        _.defineTagKeyword ('skylinkEvent')
+        Tags.define ('skylinkEvent')
 
 
         /*  Manages local history persistence
