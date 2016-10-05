@@ -389,9 +389,9 @@
             messages: $observableProperty ([]),
 
             beforeInit: function () {
-                this.messages = (_.json (localStorage.getItem (History.localStorageKey)) || {}).messages || []
+                this.messages = (JSON.parse.catches ({}) (localStorage.getItem (History.localStorageKey))).messages || []
                 this.messagesChange (function (v) {
-                                localStorage.setItem (History.localStorageKey, _.json ({ messages: _.last (v, History.maxMessagesToSave) }))
+                                localStorage.setItem (History.localStorageKey, JSON.stringify ({ messages: _.last (v, History.maxMessagesToSave) }))
                                 this.publishHistory () }) },
 
             publishHistory: $debounce ({ wait: 2000 }, function () {
