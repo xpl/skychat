@@ -602,13 +602,13 @@
             receivedMessageFromOtherPeer: $trigger (),
             receivedMessage:              $trigger (),
 
-            incomingMessage: $skylinkEvent (function (message, id, info, self) { var json = _.json (message.content)
+            incomingMessage: $skylinkEvent (function (message, id, info, self) { var json = JSON.parse.catches ({}) (message.content)
                 this.receivedMessage (json, id, info, self)
                 if (!self) {
                     this.receivedMessageFromOtherPeer (json, id, info) } }),
 
             sendMessage: function (obj, peerId) {
-                var str = _.json (_.extend ({ tag: String.randomHex (6), when: Date.now () }, obj))
+                var str = JSON.stringify (_.extend ({ tag: String.randomHex (6), when: Date.now () }, obj))
                 return peerId ?
                     this.skylink.sendP2PMessage (str, peerId) :
                     this.skylink.sendP2PMessage (str) } })
